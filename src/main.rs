@@ -73,7 +73,9 @@ async fn download_paper(id: &str) -> Result<Paper, Box<dyn Error>> {
 
     // find out if the file is gzipped
     let is_gzipped = bytes.starts_with(&[0x1f, 0x8b]);
-    assert!(is_gzipped, "File is not gzipped?!?!?!");
+    if !is_gzipped {
+        return Err("Not a gzip file".into());
+    }
 
     // decompress gzip
     let mut decoder = GzipDecoder::new(&bytes[..]);
@@ -87,7 +89,12 @@ async fn download_paper(id: &str) -> Result<Paper, Box<dyn Error>> {
     let mut entries = archive.entries()?;
     while let Some(file) = entries.next().await {
         let mut file = file?;
-        let name = file.path()?.to_str().unwrap().to_string();
+        let path = file.path()?;
+        let name = path.to_str();
+        if name.is_none() {
+            continue;
+        }
+        let name = name.unwrap().to_string();
         if !name.ends_with(".tex") {
             // only tex allowed here!
             continue;
@@ -95,6 +102,9 @@ async fn download_paper(id: &str) -> Result<Paper, Box<dyn Error>> {
         let mut content = String::new();
         file.read_to_string(&mut content).await?;
         files.push(TexFile { name, content });
+    }
+    if files.is_empty() {
+        return Err("No tex files found".into());
     }
     Ok(Paper {
         id: id.to_string(),
