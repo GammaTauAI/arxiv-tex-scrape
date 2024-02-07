@@ -1,4 +1,5 @@
 import datasets
+import datetime
 import json
 from tqdm import tqdm
 import os
@@ -12,7 +13,7 @@ print("pre-filter")
 print(ds)
 # would be nice to filter for citations; lots of papers are garbage
 # NOTE: dates are in datetime
-ds = ds.filter(lambda x: "cs." in x["categories"] and x["update_date"] > "2021-01-01")
+ds = ds.filter(lambda x: "cs." in x["categories"] and x["update_date"] > datetime.datetime(2021, 1, 1))
 print("post-filter")
 print(ds)
 # care only about "id"
