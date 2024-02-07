@@ -2,10 +2,16 @@ use async_compression::futures::bufread::GzipDecoder;
 use async_tar::Archive; // For handling tar archives
 use futures::{AsyncReadExt, StreamExt};
 use rand::seq::SliceRandom; // For gzip decompression
+use std::error::Error;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
-use std::{error::Error, io::Read};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
+
+lazy_static::lazy_static! {
+    static ref ATOMIC_COUNTER: AtomicUsize = AtomicUsize::new(0);
+    static ref ATOMIC_MAX: AtomicUsize = AtomicUsize::new(0);
+}
 
 #[tokio::main]
 async fn main() {
@@ -39,6 +45,8 @@ async fn main() {
     }
 
     println!("Read {} ids", ids.len());
+    let total_ids = ids.len();
+    ATOMIC_MAX.store(total_ids, std::sync::atomic::Ordering::Relaxed);
     // shuffle the ids
     let mut rng = rand::thread_rng();
     ids.shuffle(&mut rng);
@@ -167,6 +175,8 @@ pub fn spawn_ds_worker(
         }
         println!("Spawned DS worker");
         loop {
+            let num = ATOMIC_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let max = ATOMIC_MAX.load(std::sync::atomic::Ordering::Relaxed);
             let paper = match rx.recv().await {
                 Some(t) => t,
                 None => {
@@ -174,7 +184,7 @@ pub fn spawn_ds_worker(
                     return;
                 }
             };
-            println!("Got {} paper to store", paper.id);
+            println!("({}/{}) Got {} paper to store", num, max, paper.id);
             // create a directory for the paper
             let paper_path = format!("{}/{}", root_path, paper.id);
             if let Err(e) = tokio::fs::create_dir(&paper_path).await {
