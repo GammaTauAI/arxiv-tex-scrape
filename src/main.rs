@@ -80,49 +80,57 @@ pub struct Paper {
 
 // the asynchronous function to download and extract TeX files
 async fn download_paper(id: &str) -> Result<Paper, Box<dyn Error>> {
-    let url = format!("https://arxiv.org/e-print/{}.pdf", id);
-    let response = reqwest::get(&url).await?;
-    let bytes = response.bytes().await?;
-
-    // find out if the file is gzipped
-    let is_gzipped = bytes.starts_with(&[0x1f, 0x8b]);
-    if !is_gzipped {
-        return Err("Not a gzip file".into());
-    }
-
-    // decompress gzip
-    let mut decoder = GzipDecoder::new(&bytes[..]);
-    let mut decompressed = Vec::new();
-    decoder.read_to_end(&mut decompressed).await?;
-    println!("Decompressed {} bytes", decompressed.len());
-
-    // extract tar
-    let archive = Archive::new(decompressed.as_slice());
-    let mut files = Vec::new();
-    let mut entries = archive.entries()?;
-    while let Some(file) = entries.next().await {
-        let mut file = file?;
-        let path = file.path()?;
-        let name = path.to_str();
-        if name.is_none() {
+    loop {
+        let url = format!("https://arxiv.org/e-print/{}.pdf", id);
+        let response = reqwest::get(&url).await?;
+        // check status code, if 429, wait and retry
+        if response.status().as_u16() == 429 {
+            tokio::time::sleep(std::time::Duration::from_secs(120)).await;
             continue;
         }
-        let name = name.unwrap().to_string();
-        if !name.ends_with(".tex") || name.contains('/') {
-            // only tex allowed here and only top-level files
-            continue;
+
+        let bytes = response.bytes().await?;
+
+        // find out if the file is gzipped
+        let is_gzipped = bytes.starts_with(&[0x1f, 0x8b]);
+        if !is_gzipped {
+            return Err("Not a gzip file".into());
         }
-        let mut content = String::new();
-        file.read_to_string(&mut content).await?;
-        files.push(TexFile { name, content });
+
+        // decompress gzip
+        let mut decoder = GzipDecoder::new(&bytes[..]);
+        let mut decompressed = Vec::new();
+        decoder.read_to_end(&mut decompressed).await?;
+        println!("Decompressed {} bytes", decompressed.len());
+
+        // extract tar
+        let archive = Archive::new(decompressed.as_slice());
+        let mut files = Vec::new();
+        let mut entries = archive.entries()?;
+        while let Some(file) = entries.next().await {
+            let mut file = file?;
+            let path = file.path()?;
+            let name = path.to_str();
+            if name.is_none() {
+                continue;
+            }
+            let name = name.unwrap().to_string();
+            if !name.ends_with(".tex") || name.contains('/') {
+                // only tex allowed here and only top-level files
+                continue;
+            }
+            let mut content = String::new();
+            file.read_to_string(&mut content).await?;
+            files.push(TexFile { name, content });
+        }
+        if files.is_empty() {
+            return Err("No tex files found".into());
+        }
+        return Ok(Paper {
+            id: id.to_string(),
+            files,
+        });
     }
-    if files.is_empty() {
-        return Err("No tex files found".into());
-    }
-    Ok(Paper {
-        id: id.to_string(),
-        files,
-    })
 }
 
 pub fn spawn_transfer_worker(
