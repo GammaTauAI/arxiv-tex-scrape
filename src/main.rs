@@ -24,6 +24,25 @@ async fn main() {
     }
 
     let ds_worker = spawn_ds_worker(ds_rx);
+    // read $CARGO_MANIFEST_DIR/arxiv_ids.json (json array of strings) and
+    // send each paper id to the transfer workers
+    let mut ids = Vec::new();
+    {
+        let file = std::fs::File::open("arxiv_ids.json").unwrap();
+        let reader = std::io::BufReader::new(file);
+        let json: serde_json::Value = serde_json::from_reader(reader).unwrap();
+        for id in json.as_array().unwrap() {
+            ids.push(id.as_str().unwrap().to_string());
+        }
+    }
+
+    println!("Read {} ids", ids.len());
+
+    for id in ids {
+        tb_tx.send(id).await.unwrap();
+    }
+
+    println!("All ids sent -- waiting.");
 
     // close channels to signal workers to exit and wait for them to exit
     drop(tb_tx);
