@@ -85,6 +85,7 @@ async fn download_paper(id: &str) -> Result<Paper, Box<dyn Error>> {
         let response = reqwest::get(&url).await?;
         // check status code, if 429, wait and retry
         if response.status().as_u16() == 429 {
+            println!("429: Waiting 120 seconds");
             tokio::time::sleep(std::time::Duration::from_secs(120)).await;
             continue;
         }
