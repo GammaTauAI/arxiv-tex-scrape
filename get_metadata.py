@@ -1,8 +1,6 @@
 import datasets
 import datetime
 import json
-from tqdm import tqdm
-import os
 ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
 
 # only keep "id"
