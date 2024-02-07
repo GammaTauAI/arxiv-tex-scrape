@@ -1,6 +1,7 @@
 use async_compression::futures::bufread::GzipDecoder;
 use async_tar::Archive; // For handling tar archives
-use futures::{AsyncReadExt, StreamExt}; // For gzip decompression
+use futures::{AsyncReadExt, StreamExt};
+use rand::seq::SliceRandom; // For gzip decompression
 use std::sync::Arc;
 use std::{error::Error, io::Read};
 use tokio::sync::mpsc;
@@ -9,10 +10,11 @@ use tokio::sync::Mutex;
 #[tokio::main]
 async fn main() {
     let args = std::env::args().collect::<Vec<_>>();
-    if args.len() != 2 {
-        panic!("Usage: cargo run -- <num_workers>");
+    if args.len() != 3 {
+        panic!("Usage: cargo run -- <num_workers> <path to store>");
     }
     let num_workers = args[1].parse::<usize>().unwrap();
+    let path = args[2].clone();
 
     let mut workers = Vec::new();
     let (tb_tx, tb_rx) = mpsc::channel(num_workers);
@@ -23,7 +25,7 @@ async fn main() {
         workers.push(spawned);
     }
 
-    let ds_worker = spawn_ds_worker(ds_rx);
+    let ds_worker = spawn_ds_worker(ds_rx, path);
     // read $CARGO_MANIFEST_DIR/arxiv_ids.json (json array of strings) and
     // send each paper id to the transfer workers
     let mut ids = Vec::new();
@@ -37,6 +39,9 @@ async fn main() {
     }
 
     println!("Read {} ids", ids.len());
+    // shuffle the ids
+    let mut rng = rand::thread_rng();
+    ids.shuffle(&mut rng);
 
     for id in ids {
         tb_tx.send(id).await.unwrap();
@@ -95,8 +100,8 @@ async fn download_paper(id: &str) -> Result<Paper, Box<dyn Error>> {
             continue;
         }
         let name = name.unwrap().to_string();
-        if !name.ends_with(".tex") {
-            // only tex allowed here!
+        if !name.ends_with(".tex") || name.contains('/') {
+            // only tex allowed here and only top-level files
             continue;
         }
         let mut content = String::new();
@@ -150,8 +155,16 @@ pub fn spawn_transfer_worker(
     })
 }
 
-pub fn spawn_ds_worker(mut rx: mpsc::Receiver<Paper>) -> tokio::task::JoinHandle<()> {
+pub fn spawn_ds_worker(
+    mut rx: mpsc::Receiver<Paper>,
+    root_path: String,
+) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
+        // create the root path if it doesn't exist
+        if let Err(e) = tokio::fs::create_dir_all(&root_path).await {
+            println!("Error creating root directory {}: {}", root_path, e);
+            return;
+        }
         println!("Spawned DS worker");
         loop {
             let paper = match rx.recv().await {
@@ -162,7 +175,20 @@ pub fn spawn_ds_worker(mut rx: mpsc::Receiver<Paper>) -> tokio::task::JoinHandle
                 }
             };
             println!("Got {} paper to store", paper.id);
-            // do something with the papers
+            // create a directory for the paper
+            let paper_path = format!("{}/{}", root_path, paper.id);
+            if let Err(e) = tokio::fs::create_dir(&paper_path).await {
+                println!("Error creating paper directory {}: {}", paper_path, e);
+                continue;
+            }
+
+            // store the tex files
+            for file in paper.files {
+                let file_path = format!("{}/{}", paper_path, file.name);
+                if let Err(e) = tokio::fs::write(&file_path, file.content).await {
+                    println!("Error writing file {}: {}", file_path, e);
+                }
+            }
         }
     })
 }
