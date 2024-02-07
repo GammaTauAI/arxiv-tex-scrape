@@ -1,9 +1,0 @@
-import datasets
-import os
-ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
-
-# only keep "id"
-
-
-# filter category down to cs: "cs."
-ds = ds.filter(lambda x: "cs." in x["categories"], num_proc=os.cpu_count())
