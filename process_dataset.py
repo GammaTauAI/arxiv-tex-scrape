@@ -30,7 +30,7 @@ def process(ex):
         return None
 
 
-ds = ds.map(process, num_proc=os.cpu_count())
+ds = ds.map(process)
 print(ds)
 
 ds.push_to_hub(args.push)
