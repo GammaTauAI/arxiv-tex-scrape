@@ -14,7 +14,7 @@ ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
 
 
 def process(ex):
-    return ex
+    return None
 
 
 ds = ds.map(process, num_proc=os.cpu_count())
