@@ -12,9 +12,25 @@ args = parser.parse_args()
 
 ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
 
+base_path = Path(args.papers)
+
 
 def process(ex):
-    return None
+    p_id = ex["id"]
+    p_dir = base_path / p_id
+    if p_dir.exists():
+        # read all files in the directory
+        files = {}
+        for f in p_dir.iterdir():
+            if f.is_file():
+                files[f.name] = f.read_text()
+
+        return {"files": files, **ex}
+    else:
+        return None
 
 
 ds = ds.map(process, num_proc=os.cpu_count())
+print(ds)
+
+ds.push_to_hub(args.push)
