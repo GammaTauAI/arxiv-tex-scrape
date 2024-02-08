@@ -15,7 +15,8 @@ ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
 base_path = Path(args.papers)
 
 
-def process(ex):
+ds2 = []
+for ex in tqdm(ds, total=len(ds)):
     p_id = ex["id"]
     p_dir = base_path / p_id
     if p_dir.exists():
@@ -25,12 +26,10 @@ def process(ex):
             if f.is_file():
                 files[f.name] = f.read_text()
 
-        return {"files": files, **ex}
-    else:
-        return None
+        ex2 = {"files": files, **ex}
+        ds2.append(ex2)
 
-
-ds = ds.map(process)
+ds = datasets.Dataset.from_list(ds2)
 print(ds)
 
 ds.push_to_hub(args.push)
