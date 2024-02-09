@@ -35,6 +35,9 @@ for ex in tqdm(ds, total=len(ds)):
                     continue
                 files[f.name] = txt
 
+        if len(files) > 10:
+            print(f"Skipping {p_id} as it has too many files")
+            continue
         ex2 = {"files": files, **ex}
         ds2.append(ex2)
 
