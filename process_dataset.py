@@ -13,6 +13,7 @@ args = parser.parse_args()
 ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
 
 base_path = Path(args.papers)
+TOO_LARGE = 10_000_000  # chars
 
 
 ds2 = []
@@ -22,9 +23,17 @@ for ex in tqdm(ds, total=len(ds)):
     if p_dir.exists():
         # read all files in the directory
         files = {}
+        skip = False
         for f in p_dir.iterdir():
+            if skip:
+                break
             if f.is_file():
-                files[f.name] = f.read_text()
+                txt = f.read_text()
+                if len(txt) > TOO_LARGE:
+                    print(f"Skipping {f} as it is too large")
+                    skip = True
+                    continue
+                files[f.name] = txt
 
         ex2 = {"files": files, **ex}
         ds2.append(ex2)
