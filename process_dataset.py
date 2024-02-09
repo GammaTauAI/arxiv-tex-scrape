@@ -20,6 +20,7 @@ def chunkify(lst, n):
 parser = argparse.ArgumentParser()
 parser.add_argument("--papers", type=str, required=True)
 parser.add_argument("--push", type=str, required=True)
+parser.add_argument("--save-to-disk", type=str, required=False)
 args = parser.parse_args()
 
 ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
@@ -99,5 +100,7 @@ for ex in tqdm(ds, total=len(ds)):
             ds2[k].append(ex2[k])
 
 ds = datasets.Dataset.from_dict(ds2)
+if args.save_to_disk:
+    ds.save_to_disk(args.save_to_disk)
 
 ds.push_to_hub(args.push)
