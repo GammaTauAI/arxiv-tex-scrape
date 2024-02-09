@@ -16,6 +16,37 @@ base_path = Path(args.papers)
 TOO_LARGE = 10_000_000  # chars
 
 
+def find_main_file(files: dict):
+    # the main file will have:
+    # - \title
+    # - \begin{abstract}, \end{abstract}
+    # - \begin{document}, \end{document}
+
+    # find candidate files
+    candidates = []
+    for f, txt in files.items():
+        if "\\title" in txt and "\\begin{abstract}" in txt and "\\end{abstract}" in txt and "\\begin{document}" in txt and "\\end{document}" in txt:
+            candidates.append(f)
+
+    if len(candidates) == 0:
+        return None
+
+    # if there is only one candidate, return it
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # if there are multiple candidates, return the one with the most words
+    best = None
+    best_n = 0
+    for c in candidates:
+        n = len(files[c].split())
+        if n > best_n:
+            best = c
+            best_n = n
+
+    return best
+
+
 ds2 = []
 for ex in tqdm(ds, total=len(ds)):
     p_id = ex["id"]
@@ -38,7 +69,13 @@ for ex in tqdm(ds, total=len(ds)):
         if len(files) > 10:
             print(f"Skipping {p_id} as it has too many files")
             continue
-        ex2 = {"files": files, **ex}
+
+        main_file = find_main_file(files)
+        if main_file is None:
+            print(f"Skipping {p_id} as it has no main file")
+            continue
+
+        ex2 = {"main": main_file, "files": files, **ex}
         ds2.append(ex2)
 
 ds = datasets.Dataset.from_list(ds2)
