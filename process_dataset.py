@@ -5,6 +5,18 @@ from pathlib import Path
 from tqdm import tqdm
 import argparse
 
+
+def chunkify(lst, n):
+    chunks = []
+    for i in range(0, len(lst), n):
+        chunk = []
+        for j in range(n):
+            if i + j < len(lst):
+                chunk.append(lst[i + j])
+        chunks.append(chunk)
+    return chunks
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--papers", type=str, required=True)
 parser.add_argument("--push", type=str, required=True)
@@ -78,7 +90,11 @@ for ex in tqdm(ds, total=len(ds)):
         ex2 = {"main": main_file, "files": files, **ex}
         ds2.append(ex2)
 
-ds = datasets.Dataset.from_list(ds2)
-print(ds)
+dses = []
+for ds in tqdm(list(chunkify(ds2, 25_000))):
+    dses.append(datasets.Dataset.from_list(ds))
+
+print("Merging datasets")
+ds = datasets.concatenate_datasets(dses)
 
 ds.push_to_hub(args.push)
