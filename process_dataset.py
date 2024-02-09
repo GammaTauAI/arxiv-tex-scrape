@@ -59,7 +59,10 @@ def find_main_file(files: dict):
     return best
 
 
-ds2 = {}
+ds2 = {
+    "main": [],
+    "files": [],
+}
 ex1 = ds[0]
 for k in ex1.keys():
     ds2[k] = []
@@ -92,7 +95,7 @@ for ex in tqdm(ds, total=len(ds)):
             continue
 
         ex2 = {"main": main_file, "files": files, **ex}
-        for k in ex1.keys():
+        for k in ex2.keys():
             ds2[k].append(ex2[k])
 
 ds = datasets.Dataset.from_dict(ds2)
