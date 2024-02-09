@@ -16,10 +16,7 @@ base_path = Path(args.papers)
 
 
 ds2 = []
-i = 0
 for ex in tqdm(ds, total=len(ds)):
-    if i > 10_000:
-        break
     p_id = ex["id"]
     p_dir = base_path / p_id
     if p_dir.exists():
@@ -31,7 +28,6 @@ for ex in tqdm(ds, total=len(ds)):
 
         ex2 = {"files": files, **ex}
         ds2.append(ex2)
-        i += 1
 
 ds = datasets.Dataset.from_list(ds2)
 print(ds)
