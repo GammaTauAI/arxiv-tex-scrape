@@ -59,7 +59,11 @@ def find_main_file(files: dict):
     return best
 
 
-ds2 = []
+ds2 = {}
+ex1 = ds[0]
+for k in ex1.keys():
+    ds2[k] = []
+
 for ex in tqdm(ds, total=len(ds)):
     p_id = ex["id"]
     p_dir = base_path / p_id
@@ -88,13 +92,9 @@ for ex in tqdm(ds, total=len(ds)):
             continue
 
         ex2 = {"main": main_file, "files": files, **ex}
-        ds2.append(ex2)
+        for k in ex1.keys():
+            ds2[k].append(ex2[k])
 
-dses = []
-for ds in tqdm(list(chunkify(ds2, 25_000))):
-    dses.append(datasets.Dataset.from_list(ds))
-
-print("Merging datasets")
-ds = datasets.concatenate_datasets(dses)
+ds = datasets.Dataset.from_dict(ds2)
 
 ds.push_to_hub(args.push)
