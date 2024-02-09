@@ -16,7 +16,11 @@ base_path = Path(args.papers)
 
 
 ds2 = []
+i = 0
 for ex in tqdm(ds, total=len(ds)):
+    i += 1
+    if i > 10_000:
+        break
     p_id = ex["id"]
     p_dir = base_path / p_id
     if p_dir.exists():
