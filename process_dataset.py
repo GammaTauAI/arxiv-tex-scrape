@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--papers", type=str, required=True)
 parser.add_argument("--push", type=str, required=True)
 parser.add_argument("--save-to-disk", type=str, required=False)
+parser.add_argument("--subset", type=int, default=None)
 args = parser.parse_args()
 
 ds = datasets.load_dataset("CCRss/arXiv_dataset", split="train")
@@ -68,7 +69,10 @@ ex1 = ds[0]
 for k in ex1.keys():
     ds2[k] = []
 
+i = 0
 for ex in tqdm(ds, total=len(ds)):
+    if args.subset is not None and i >= args.subset:
+        break
     p_id = ex["id"]
     p_dir = base_path / p_id
     if p_dir.exists():
@@ -98,6 +102,7 @@ for ex in tqdm(ds, total=len(ds)):
         ex2 = {"main": main_file, "files": files, **ex}
         for k in ex2.keys():
             ds2[k].append(ex2[k])
+        i += 1
 
 ds = datasets.Dataset.from_dict(ds2)
 if args.save_to_disk:
