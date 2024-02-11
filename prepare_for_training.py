@@ -18,6 +18,9 @@ if os.path.exists(args.dataset):
 else:
     dataset = datasets.load_dataset(args.dataset, split="train")
 
+print("Dataset loaded")
+print(dataset)
+
 
 def process(ex):
     main = ex["files"][ex["main"]]
@@ -25,7 +28,7 @@ def process(ex):
 
     # add all the files before the main file
     buf = ""
-    for f, txt in ex["files"].items():
+    for _, txt in ex["files"].items():
         if txt is None:
             continue
         buf += txt + "\n"
@@ -35,7 +38,7 @@ def process(ex):
     return {"content": buf}
 
 
-ds = dataset.map(process, batched=True, remove_columns=dataset.column_names, num_proc=os.cpu_count())
+ds = dataset.map(process, remove_columns=dataset.column_names, num_proc=os.cpu_count())
 
 print(ds)
 
