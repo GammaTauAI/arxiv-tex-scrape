@@ -6,20 +6,9 @@ from tqdm import tqdm
 import argparse
 
 
-def chunkify(lst, n):
-    chunks = []
-    for i in range(0, len(lst), n):
-        chunk = []
-        for j in range(n):
-            if i + j < len(lst):
-                chunk.append(lst[i + j])
-        chunks.append(chunk)
-    return chunks
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--papers", type=str, required=True)
-parser.add_argument("--push", type=str, required=True)
+parser.add_argument("--push", type=str, required=False)
 parser.add_argument("--save-to-disk", type=str, required=False)
 parser.add_argument("--subset", type=int, default=None)
 args = parser.parse_args()
@@ -105,7 +94,9 @@ for ex in tqdm(ds, total=len(ds)):
         i += 1
 
 ds = datasets.Dataset.from_dict(ds2)
+
 if args.save_to_disk:
     ds.save_to_disk(args.save_to_disk)
 
-ds.push_to_hub(args.push)
+if args.push:
+    ds.push_to_hub(args.push)
