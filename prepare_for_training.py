@@ -1,4 +1,5 @@
 import argparse
+import os
 import datasets
 from tqdm import tqdm
 import os
@@ -17,8 +18,8 @@ if os.path.exists(args.dataset):
 else:
     dataset = datasets.load_dataset(args.dataset, split="train")
 
-content = []
-for ex in tqdm(dataset):
+
+def process(ex):
     main = ex["files"][ex["main"]]
     del ex["files"][ex["main"]]
 
@@ -31,9 +32,13 @@ for ex in tqdm(dataset):
 
     buf += main
     print(buf[:50].replace("\n", " "))
-    content.append(buf)
+    return {"content": buf}
 
-ds = dataset.Dataset.from_dict({"content": content})
+
+ds = dataset.map(process, batched=True, remove_columns=dataset.column_names, num_proc=os.cpu_count())
+
+print(ds)
+
 if args.save_to_disk:
     ds.save_to_disk(args.save_to_disk)
 
