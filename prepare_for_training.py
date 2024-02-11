@@ -30,6 +30,7 @@ for ex in tqdm(dataset):
         buf += txt + "\n"
 
     buf += main
+    print(buf[:100])
     content.append(buf)
 
 ds = dataset.Dataset.from_dict({"content": content})
