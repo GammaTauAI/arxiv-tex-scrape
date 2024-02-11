@@ -25,6 +25,8 @@ for ex in tqdm(dataset):
     # add all the files before the main file
     buf = ""
     for f, txt in ex["files"].items():
+        if txt is None:
+            continue
         buf += txt + "\n"
 
     buf += main
