@@ -11,11 +11,11 @@ args = parser.parse_args()
 
 if os.path.exists(args.dataset):
     dataset = datasets.load_from_disk(args.dataset)
+    if isinstance(dataset, datasets.DatasetDict):
+        dataset = dataset["train"]
+
 else:
-    dataset = datasets.load_dataset(args.dataset)
-
-dataset = dataset["train"]
-
+    dataset = datasets.load_dataset(args.dataset, split="train")
 
 content = []
 for ex in tqdm(dataset):
