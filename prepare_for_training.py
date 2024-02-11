@@ -17,3 +17,22 @@ else:
 dataset = dataset["train"]
 
 
+content = []
+for ex in tqdm(dataset):
+    main = ex["files"][ex["main"]]
+    del ex["files"][ex["main"]]
+
+    # add all the files before the main file
+    buf = ""
+    for f, txt in ex["files"].items():
+        buf += txt + "\n"
+
+    buf += main
+    content.append(buf)
+
+ds = dataset.add_column("content", content)
+if args.save_to_disk:
+    ds.save_to_disk(args.save_to_disk)
+
+if args.push:
+    ds.push_to_hub(args.push)
