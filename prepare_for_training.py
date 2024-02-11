@@ -30,7 +30,7 @@ for ex in tqdm(dataset):
     buf += main
     content.append(buf)
 
-ds = dataset.add_column("content", content)
+ds = dataset.Dataset.from_dict({"content": content})
 if args.save_to_disk:
     ds.save_to_disk(args.save_to_disk)
 
