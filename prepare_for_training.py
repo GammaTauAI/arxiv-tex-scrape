@@ -1,7 +1,6 @@
 import argparse
 import os
 import datasets
-from tqdm import tqdm
 import os
 
 parser = argparse.ArgumentParser()
@@ -11,7 +10,7 @@ parser.add_argument("--save-to-disk", type=str, required=False)
 args = parser.parse_args()
 
 if os.path.exists(args.dataset):
-    dataset = datasets.load_from_disk(args.dataset)
+    dataset = datasets.load_from_disk(args.dataset, keep_in_memory=True)
     if isinstance(dataset, datasets.DatasetDict):
         dataset = dataset["train"]
 
